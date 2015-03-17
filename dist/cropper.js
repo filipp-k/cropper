@@ -5,7 +5,7 @@
  * Copyright (c) 2014-2015 Fengyuan Chen and contributors
  * Released under the MIT license
  *
- * Date: 2015-03-15T06:29:30.388Z
+ * Date: 2015-03-17T11:32:39.792Z
  */
 
 (function (factory) {
@@ -112,8 +112,23 @@
     return (url + (url.indexOf('?') === -1 ? '?' : '&') + timestamp);
   }
 
-  function getRotateValue(degree) {
-    return degree ? 'rotate(' + degree + 'deg)' : 'none';
+  function getTransformValue(degree, flip) {
+    var transform = [];
+    if (degree) {
+      transform.push('rotate(' + degree + 'deg)');
+    }
+    if (flip && flip.vertically === true) {
+      transform.push('scaleY(-1)');
+    }
+    if (flip && flip.horizontally === true) {
+      transform.push('scaleX(-1)');
+    }
+
+    if (!transform.length) {
+      return 'none';
+    } else {
+      return transform.join(' ');
+    }
   }
 
   function getRotatedSizes(data, reverse) {
@@ -147,18 +162,20 @@
         width = data.naturalWidth,
         height = data.naturalHeight,
         rotate = data.rotate,
+        flip = data.flip,
         rotated = getRotatedSizes({
           width: width,
           height: height,
           degree: rotate
         });
 
-    if (rotate) {
+    if (rotate || flip.horizontally || flip.vertically) {
       canvas.width = rotated.width;
       canvas.height = rotated.height;
       context.save();
       context.translate(rotated.width / 2, rotated.height / 2);
       context.rotate(rotate * Math.PI / 180);
+      context.scale(flip.horizontally ? -1 : 1, flip.vertically ? -1 : 1);
       context.drawImage(image, -width / 2, -height / 2, width, height);
       context.restore();
     } else {
@@ -227,7 +244,8 @@
         naturalWidth: naturalWidth,
         naturalHeight: naturalHeight,
         aspectRatio: naturalWidth / naturalHeight,
-        rotate: 0
+        rotate: 0,
+        flip: { horizontally: false, vertically: false }
       };
 
       this.url = url;
@@ -534,7 +552,7 @@
         height: image.height,
         marginLeft: image.left,
         marginTop: image.top,
-        transform: getRotateValue(image.rotate)
+        transform: getTransformValue(image.rotate, image.flip)
       });
 
       if (changed) {
@@ -680,7 +698,8 @@
         height = image.height,
         left = cropBox.left - canvas.left - image.left,
         top = cropBox.top - canvas.top - image.top,
-        rotate = image.rotate;
+        rotate = image.rotate,
+        flip = image.flip;
 
     if (!this.cropped || this.disabled) {
       return;
@@ -691,7 +710,7 @@
       height: height,
       marginLeft: -left,
       marginTop: -top,
-      transform: getRotateValue(rotate)
+      transform: getTransformValue(rotate, flip)
     });
 
     this.$preview.each(function () {
@@ -712,7 +731,7 @@
         height: height * ratio,
         marginLeft: -left * ratio,
         marginTop: -top * ratio,
-        transform: getRotateValue(rotate)
+        transform: getTransformValue(rotate, flip)
       });
     });
   };
@@ -1066,11 +1085,24 @@
       }
     },
 
+    flip: function (side) {
+      var image = this.image;
+
+      side = (side === 'vertically' || side === 'horizontally') ? side : undefined;
+
+      if (side !== undefined && this.built && !this.disabled && this.options.flippable) {
+        image.flip = image.flip || {};
+        image.flip[side] = !(image.flip.hasOwnProperty(side) && image.flip[side] === true);
+        this.renderCanvas(true);
+      }
+    },
+
     getData: function () {
       var cropBox = this.cropBox,
           canvas = this.canvas,
           image = this.image,
           rotate = image.rotate,
+          flip = image.flip,
           ratio,
           data;
 
@@ -1088,7 +1120,6 @@
           n = n / ratio;
           data[i] = n;
         });
-
       } else {
         data = {
           x: 0,
@@ -1099,6 +1130,7 @@
       }
 
       data.rotate = rotate;
+      data.flip = flip;
 
       return data;
     },
@@ -1775,6 +1807,7 @@
     movable: true, // Enable to move the crop box
     resizable: true, // Enable to resize the crop box
     rotatable: true, // Enable to rotate the image
+    flippable: true, // Enable to flip the image
     zoomable: true, // Enable to zoom the image
     touchDragZoom: true, // Enable to zoom the image by wheeling mouse
     mouseWheelZoom: true, // Enable to zoom the image by dragging touch
@@ -1865,5 +1898,7 @@
     $.fn.cropper = Cropper.other;
     return this;
   };
+
+  return $.fn.cropper; // for AMD callback
 
 });
