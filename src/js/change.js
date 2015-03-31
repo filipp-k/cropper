@@ -29,13 +29,56 @@
       case 'all':
         left += range.x;
         top += range.y;
+
+        // correction
+        if (!this.options.strict && this.options.strictCropBox) {
+          if (left < canvas.left) {
+            left = canvas.left;
+          } else if (left + width > canvas.left + canvas.width) {
+            left = (canvas.left + canvas.width) - width;
+          }
+
+          if (top < canvas.top) {
+            top = canvas.top;
+          } else if (top + height > canvas.top + canvas.height) {
+            top = (canvas.top + canvas.height) - height;
+          }
+        }
+
         break;
 
       // Resize cropBox
       case 'e':
-        if (range.x >= 0 && (right >= maxWidth || aspectRatio && (top <= 0 || bottom >= maxHeight))) {
-          renderable = false;
-          break;
+        range.maxX = container.width - right;
+
+        if (aspectRatio) {
+          if (top < container.height - bottom) {
+            range.maxX = Math.min(range.maxX, top * aspectRatio);
+          } else {
+            range.maxX = Math.min(range.maxX, (container.height - bottom) * aspectRatio);
+          }
+        }
+
+        if (!this.options.strict && this.options.strictCropBox) {
+          canvas.right = canvas.left + canvas.width;
+          range.maxX = Math.min(range.maxX, canvas.right - right);
+
+          if (aspectRatio) {
+            canvas.bottom = canvas.top + canvas.height;
+
+            if (top - canvas.top < canvas.bottom - bottom) {
+              range.maxX = Math.min(range.maxX, (top - canvas.top) * aspectRatio);
+            } else {
+              range.maxX = Math.min(range.maxX, (canvas.bottom - bottom) * aspectRatio);
+            }
+          }
+        }
+
+        if (range.x > range.maxX) {
+          range.x = range.maxX;
+          if (aspectRatio) {
+            range.Y = range.x / aspectRatio;
+          }
         }
 
         width += range.x;
@@ -47,15 +90,42 @@
 
         if (width < 0) {
           dragType = 'w';
-          width = 0;
+          left += width;
+          width = -width;
+          // todo: recalculate top and height
         }
 
         break;
 
       case 'n':
-        if (range.y <= 0 && (top <= 0 || aspectRatio && (left <= 0 || right >= maxWidth))) {
-          renderable = false;
-          break;
+        range.minY = -top;
+
+        if (aspectRatio) {
+          if (left < container.width - right) {
+            range.minY = Math.max(range.minY, -left * aspectRatio);
+          } else {
+            range.minY = Math.max(range.minY, -(container.width - right) * aspectRatio);
+          }
+        }
+
+        if (!this.options.strict && this.options.strictCropBox) {
+          range.minY = Math.max(range.minY, canvas.top - top);
+
+          if (aspectRatio) {
+            canvas.right = canvas.left + canvas.width;
+            if (left - canvas.left < canvas.right - right) {
+              range.minY = Math.max(range.minY, -(left - canvas.left) * aspectRatio);
+            } else {
+              range.minY = Math.max(range.minY, -(canvas.right - right) * aspectRatio);
+            }
+          }
+        }
+
+        if (range.y < range.minY) {
+          range.y = range.minY;
+          if (aspectRatio) {
+            range.X = range.y * aspectRatio;
+          }
         }
 
         height -= range.y;
@@ -68,15 +138,43 @@
 
         if (height < 0) {
           dragType = 's';
-          height = 0;
+          top += height;
+          height = -height;
+          // todo: recalculate left and width
         }
 
         break;
 
       case 'w':
-        if (range.x <= 0 && (left <= 0 || aspectRatio && (top <= 0 || bottom >= maxHeight))) {
-          renderable = false;
-          break;
+        range.minX = -left;
+
+        if (aspectRatio) {
+          if (top < container.height - bottom) {
+            range.minX = Math.max(range.minX, -top * aspectRatio);
+          } else {
+            range.minX = Math.max(range.minX, -(container.height - bottom) * aspectRatio);
+          }
+        }
+
+        if (!this.options.strict && this.options.strictCropBox) {
+          range.minX = Math.max(range.minX, canvas.left - left);
+
+          if (aspectRatio) {
+            canvas.bottom = canvas.top + canvas.height;
+
+            if (top - canvas.top < canvas.bottom - bottom) {
+              range.minX = Math.max(range.minX, -(top - canvas.top) * aspectRatio);
+            } else {
+              range.minX = Math.max(range.minX, -(canvas.bottom - bottom) * aspectRatio);
+            }
+          }
+        }
+
+        if (range.x < range.minX) {
+          range.x = range.minX;
+          if (aspectRatio) {
+            range.Y = range.x / aspectRatio;
+          }
         }
 
         width -= range.x;
@@ -89,15 +187,44 @@
 
         if (width < 0) {
           dragType = 'e';
-          width = 0;
+          left += width;
+          width = -width;
+          // todo: recalculate top and height
         }
 
         break;
 
       case 's':
-        if (range.y >= 0 && (bottom >= maxHeight || aspectRatio && (left <= 0 || right >= maxWidth))) {
-          renderable = false;
-          break;
+        range.maxY = container.height - bottom;
+
+        if (aspectRatio) {
+          if (left < container.width - right) {
+            range.maxY = Math.min(range.maxY, left * aspectRatio);
+          } else {
+            range.maxY = Math.min(range.maxY, (container.width - right) * aspectRatio);
+          }
+        }
+
+        if (!this.options.strict && this.options.strictCropBox) {
+          canvas.bottom = canvas.top + canvas.height;
+          range.maxY = Math.min(range.maxY, canvas.bottom - bottom);
+
+          if (aspectRatio) {
+            canvas.right = canvas.left + canvas.width;
+
+            if (left - canvas.left < canvas.right - right) {
+              range.maxY = Math.min(range.maxY, (left - canvas.left) * aspectRatio);
+            } else {
+              range.maxY = Math.min(range.maxY, (canvas.right - right) * aspectRatio);
+            }
+          }
+        }
+
+        if (range.y > range.maxY) {
+          range.y = range.maxY;
+          if (aspectRatio) {
+            range.X = range.y * aspectRatio;
+          }
         }
 
         height += range.y;
@@ -109,7 +236,9 @@
 
         if (height < 0) {
           dragType = 'n';
-          height = 0;
+          top += height;
+          height = -height;
+          // todo: recalculate left and width
         }
 
         break;
@@ -117,19 +246,46 @@
       case 'ne':
         if (aspectRatio) {
           if (range.y <= 0 && (top <= 0 || right >= maxWidth)) {
-            renderable = false;
+            console.log('ne invalid');
+            renderable = false; // todo: do not just break but recalculate sizes
             break;
+          }
+
+          // correction
+          if (!this.options.strict && this.options.strictCropBox) {
+            // top
+            if (top + range.y < canvas.top) {
+              range.y = canvas.top - top;
+              range.X = range.y * aspectRatio;
+            }
           }
 
           height -= range.y;
           top += range.y;
           width = height * aspectRatio;
+
+          // correction
+          if (!this.options.strict && this.options.strictCropBox) {
+            // right
+            if (left + width > canvas.left + canvas.width) {
+              width = canvas.left + canvas.width - left;
+              height = width / aspectRatio;
+              top = cropBox.top - (height - cropBox.height);
+            }
+          }
         } else {
           if (range.x >= 0) {
             if (right < maxWidth) {
+              // correction
+              if (!this.options.strict && this.options.strictCropBox) {
+                if (left + width + range.x > canvas.left + canvas.width) {
+                  range.x = (canvas.left + canvas.width) - (left + width);
+                }
+              }
               width += range.x;
             } else if (range.y <= 0 && top <= 0) {
-              renderable = false;
+              console.log('ne invalid by X');
+              renderable = false; // todo: do not just break but recalculate sizes
             }
           } else {
             width += range.x;
@@ -137,8 +293,18 @@
 
           if (range.y <= 0) {
             if (top > 0) {
+              // correction
+              if (!this.options.strict && this.options.strictCropBox) {
+                // top
+                if (top + range.y < canvas.top) {
+                  range.y = canvas.top - top;
+                }
+              }
               height -= range.y;
               top += range.y;
+            } {
+              console.log('ne invalid by Y');
+              // todo: do not just break but recalculate sizes
             }
           } else {
             height -= range.y;
@@ -148,14 +314,20 @@
 
         if (width < 0 && height < 0) {
           dragType = 'sw';
-          height = 0;
-          width = 0;
+          top += height;
+          height = -height;
+          left += width;
+          width = -width;
         } else if (width < 0) {
           dragType = 'nw';
-          width = 0;
+          left += width;
+          width = -width;
+          // todo: recalculate top and height
         } else if (height < 0) {
           dragType = 'se';
-          height = 0;
+          top += height;
+          height = -height;
+          // todo: recalculate left and width
         }
 
         break;
@@ -163,8 +335,24 @@
       case 'nw':
         if (aspectRatio) {
           if (range.y <= 0 && (top <= 0 || left <= 0)) {
-            renderable = false;
+            console.log('nw invalid');
+            renderable = false; // todo: do not just break but recalculate sizes
             break;
+          }
+
+          // correction
+          if (!this.options.strict && this.options.strictCropBox) {
+            // top
+            if (top + range.y < canvas.top) {
+              range.y = range.Y = canvas.top - top;
+              range.x = range.X = range.y * aspectRatio;
+            }
+
+            // left
+            if (left + range.X < canvas.left) {
+              range.x = range.X = canvas.left - left;
+              range.y = range.Y = range.x / aspectRatio;
+            }
           }
 
           height -= range.y;
@@ -174,10 +362,18 @@
         } else {
           if (range.x <= 0) {
             if (left > 0) {
+              // correction
+              if (!this.options.strict && this.options.strictCropBox) {
+                // left
+                if (left + range.x < canvas.left) {
+                  range.x = canvas.left - left;
+                }
+              }
               width -= range.x;
               left += range.x;
             } else if (range.y <= 0 && top <= 0) {
-              renderable = false;
+              console.log('nw invalid by X');
+              renderable = false; // todo: do not just break but recalculate sizes
             }
           } else {
             width -= range.x;
@@ -186,8 +382,19 @@
 
           if (range.y <= 0) {
             if (top > 0) {
+              // correction
+              if (!this.options.strict && this.options.strictCropBox) {
+                // top
+                if (top + range.y < canvas.top) {
+                  range.y = canvas.top - top;
+                }
+              }
+
               height -= range.y;
               top += range.y;
+            } else {
+              console.log('nw invalid by Y');
+              // todo: do not just break but recalculate sizes
             }
           } else {
             height -= range.y;
@@ -197,14 +404,20 @@
 
         if (width < 0 && height < 0) {
           dragType = 'se';
-          height = 0;
-          width = 0;
+          top += height;
+          height = -height;
+          left += width;
+          width = -width;
         } else if (width < 0) {
           dragType = 'ne';
-          width = 0;
+          left += width;
+          width = -width;
+          // todo: recalculate top and height according to new left and width
         } else if (height < 0) {
           dragType = 'sw';
-          height = 0;
+          top += height;
+          height = -height;
+          // todo: recalculate left and width according to new top and height
         }
 
         break;
@@ -212,20 +425,48 @@
       case 'sw':
         if (aspectRatio) {
           if (range.x <= 0 && (left <= 0 || bottom >= maxHeight)) {
-            renderable = false;
+            console.log('sw invalid');
+            renderable = false; // todo: do not just break but recalculate sizes
             break;
+          }
+
+          // correction
+          if (!this.options.strict && this.options.strictCropBox) {
+            // left
+            if (left + range.x < canvas.left) {
+              range.x = range.X = canvas.left - left;
+              range.y = range.Y = range.x / aspectRatio;
+            }
           }
 
           width -= range.x;
           left += range.x;
           height = width / aspectRatio;
+
+          // correction
+          if (!this.options.strict && this.options.strictCropBox) {
+            // height
+            if (top + height > canvas.top + canvas.height) {
+              height = canvas.top + canvas.height - top;
+              width = height * aspectRatio;
+              left = cropBox.left - (width - cropBox.width);
+            }
+          }
         } else {
           if (range.x <= 0) {
             if (left > 0) {
+              // correction
+              if (!this.options.strict && this.options.strictCropBox) {
+                // left
+                if (left + range.x < canvas.left) {
+                  range.x = canvas.left - left;
+                }
+              }
               width -= range.x;
               left += range.x;
             } else if (range.y >= 0 && bottom >= maxHeight) {
-              renderable = false;
+              console.log('sw invalid by X');
+              renderable = false; // todo: do not just break but recalculate sizes
             }
           } else {
             width -= range.x;
@@ -234,7 +475,17 @@
 
           if (range.y >= 0) {
             if (bottom < maxHeight) {
+              // correction
+              if (!this.options.strict && this.options.strictCropBox) {
+                // bottom
+                if (top + height + range.y > canvas.top + canvas.height) {
+                  range.y = canvas.top + canvas.height - height - top;
+                }
+              }
               height += range.y;
+            } else {
+              console.log('sw invalid by Y');
+              // todo: do not just break but recalculate sizes
             }
           } else {
             height += range.y;
@@ -243,14 +494,20 @@
 
         if (width < 0 && height < 0) {
           dragType = 'ne';
-          height = 0;
-          width = 0;
+          top += height;
+          height = -height;
+          left += width;
+          width = -width;
         } else if (width < 0) {
           dragType = 'se';
-          width = 0;
+          left += width;
+          width = -width;
+          // todo: recalculate top and height according to new left and width
         } else if (height < 0) {
           dragType = 'nw';
-          height = 0;
+          top += height;
+          height = -height;
+          // todo: recalculate left and width according to new top and height
         }
 
         break;
@@ -258,18 +515,41 @@
       case 'se':
         if (aspectRatio) {
           if (range.x >= 0 && (right >= maxWidth || bottom >= maxHeight)) {
-            renderable = false;
+            console.log('se invalid');
+            renderable = false; // todo: do not just break but recalculate sizes
             break;
           }
 
           width += range.x;
           height = width / aspectRatio;
+
+          // correction
+          if (!this.options.strict && this.options.strictCropBox) {
+            // right
+            if (left + width > canvas.left + canvas.width) {
+              width = canvas.left + canvas.width - left;
+              height = width / aspectRatio;
+            }
+
+            // height
+            if (top + height > canvas.top + canvas.height) {
+              height = canvas.top + canvas.height - top;
+              width = height * aspectRatio;
+            }
+          }
         } else {
           if (range.x >= 0) {
             if (right < maxWidth) {
+              // correction
+              if (!this.options.strict && this.options.strictCropBox) {
+                if (left + width + range.x > canvas.left + canvas.width) {
+                  range.x = (canvas.left + canvas.width) - (left + width);
+                }
+              }
               width += range.x;
             } else if (range.y >= 0 && bottom >= maxHeight) {
-              renderable = false;
+              console.log('se invalid by X');
+              renderable = false; // todo: do not just break but recalculate sizes
             }
           } else {
             width += range.x;
@@ -277,7 +557,17 @@
 
           if (range.y >= 0) {
             if (bottom < maxHeight) {
+              // correction
+              if (!this.options.strict && this.options.strictCropBox) {
+                // bottom
+                if (top + height + range.y > canvas.top + canvas.height) {
+                  range.y = canvas.top + canvas.height - height - top;
+                }
+              }
               height += range.y;
+            } else {
+              console.log('se invalid by Y');
+              // todo: do not just break but recalculate sizes
             }
           } else {
             height += range.y;
@@ -286,23 +576,27 @@
 
         if (width < 0 && height < 0) {
           dragType = 'nw';
-          height = 0;
-          width = 0;
+          top += height;
+          height = -height;
+          left += width;
+          width = -width;
         } else if (width < 0) {
           dragType = 'sw';
-          width = 0;
+          left += width;
+          width = -width;
+          // todo: recalculate top and height according to new left and width
         } else if (height < 0) {
           dragType = 'ne';
-          height = 0;
+          top += height;
+          height = -height;
+          // todo: recalculate left and width according to new top and height
         }
 
         break;
 
       // Move image
       case 'move':
-        canvas.left += range.x;
-        canvas.top += range.y;
-        this.renderCanvas(true);
+        this.move(range.x, range.y);
         renderable = false;
         break;
 
@@ -333,6 +627,8 @@
           top = this.startY - offset.top;
           width = cropBox.minWidth;
           height = cropBox.minHeight;
+
+          // todo: place correction
 
           if (range.x > 0) {
             if (range.y > 0) {
