@@ -11,6 +11,7 @@ $(function () {
 
   $image.cropper({
     strict: false,
+    strictCropBox: false, // todo: write test for strict crop box
 
     built: function () {
       var cropper = $(this).data('cropper'),

@@ -63,18 +63,38 @@
     },
 
     move: function (offsetX, offsetY) {
-      var canvas = this.canvas;
+      var canvas = this.canvas,
+          cropBox = this.cropBox;
 
       if (this.built && !this.disabled && isNumber(offsetX) && isNumber(offsetY)) {
         canvas.left += offsetX;
         canvas.top += offsetY;
+
+        // correction
+        if (this.options.strictCropBox) {
+          if (canvas.left  > cropBox.left) {
+            canvas.left = cropBox.left;
+          } else if (canvas.left + canvas.width < cropBox.left + cropBox.width) {
+            canvas.left = cropBox.left + cropBox.width - canvas.width;
+          }
+
+          if (canvas.top  > cropBox.top) {
+            canvas.top = cropBox.top;
+          } else if (canvas.top + canvas.height < cropBox.top + cropBox.height) {
+            canvas.top = cropBox.top + cropBox.height - canvas.height;
+          }
+        }
+
         this.renderCanvas(true);
       }
     },
 
     zoom: function (delta) {
       var canvas = this.canvas,
+          cropBox = this.cropBox,
           zoomEvent,
+          left,
+          top,
           width,
           height;
 
@@ -89,12 +109,60 @@
         }
 
         delta = delta <= -1 ? 1 / (1 - delta) : delta <= 1 ? (1 + delta) : delta;
+
         width = canvas.width * delta;
         height = canvas.height * delta;
-        canvas.left -= (width - canvas.width) / 2;
-        canvas.top -= (height - canvas.height) / 2;
+        left = canvas.left - (width - canvas.width) / 2;
+        top = canvas.top - (height - canvas.height) / 2;
+
+        // correction
+        if (!this.options.strict && this.options.strictCropBox) {
+          var canvasAspectRatio = canvas.width / canvas.height;
+
+          // if canvas is less wide than crop box make canvas the same width crop box have
+          if (width < cropBox.width) {
+            width = cropBox.width;
+            // and correct height with original aspect ratio of canvas
+            height = width / canvasAspectRatio;
+            // and lock canvas
+            top = canvas.top - (height - canvas.height) / 2;
+          }
+
+          // if even now canvas is less high than crop box make canvas the same height crop box have
+          if (height < cropBox.height) {
+            height = cropBox.height;
+            // and correct height with original aspect ratio of canvas
+            width = height * canvasAspectRatio;
+            // and lock canvas
+            left = canvas.left - (width - canvas.width) / 2;
+          }
+
+          // check left side
+          if (left > cropBox.left) {
+            left = cropBox.left;
+          }
+
+          // check right side
+          if (left + width < cropBox.left + cropBox.width) {
+            left = cropBox.left + cropBox.width - width;
+          }
+
+          // check top
+          if (top > cropBox.top) {
+            top = cropBox.top;
+          }
+
+          // check bottom
+          if (top + height < cropBox.top + cropBox.height) {
+            top = cropBox.top + cropBox.height - height;
+          }
+        }
+
+        canvas.left = left;
+        canvas.top = top;
         canvas.width = width;
         canvas.height = height;
+
         this.renderCanvas(true);
         this.setDragMode('move');
       }
