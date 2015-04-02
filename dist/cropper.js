@@ -5,7 +5,7 @@
  * Copyright (c) 2014-2015 Fengyuan Chen and contributors
  * Released under the MIT license
  *
- * Date: 2015-04-02T10:37:29.158Z
+ * Date: 2015-04-02T12:48:35.632Z
  */
 
 (function (factory) {
@@ -470,6 +470,7 @@
           container = this.container,
           canvas = this.canvas,
           image = this.image,
+          cropBox = this.cropBox,
           aspectRatio,
           reversed,
           rotated;
@@ -510,6 +511,21 @@
       if (options.strict) {
         canvas.minLeft = container.width - canvas.width;
         canvas.minTop = container.height - canvas.height;
+      } else if (this.options.strictCropBox && cropBox) {
+        if (canvas.width < cropBox.width) {
+          canvas.width = cropBox.width;
+          canvas.height = canvas.width / canvas.aspectRatio;
+        }
+
+        if (canvas.height < cropBox.height) {
+          canvas.height = cropBox.height;
+          canvas.width = canvas.height * canvas.aspectRatio;
+        }
+
+        canvas.maxLeft = cropBox.left;
+        canvas.minLeft = cropBox.left + cropBox.width - canvas.width;
+        canvas.maxTop = cropBox.top;
+        canvas.minTop = cropBox.top + cropBox.height - canvas.height;
       } else {
         canvas.minLeft = -canvas.width;
         canvas.minTop = -canvas.height;
@@ -1038,28 +1054,11 @@
     },
 
     move: function (offsetX, offsetY) {
-      var canvas = this.canvas,
-          cropBox = this.cropBox;
+      var canvas = this.canvas;
 
       if (this.built && !this.disabled && isNumber(offsetX) && isNumber(offsetY)) {
         canvas.left += offsetX;
         canvas.top += offsetY;
-
-        // correction
-        if (this.options.strictCropBox) {
-          if (canvas.left  > cropBox.left) {
-            canvas.left = cropBox.left;
-          } else if (canvas.left + canvas.width < cropBox.left + cropBox.width) {
-            canvas.left = cropBox.left + cropBox.width - canvas.width;
-          }
-
-          if (canvas.top  > cropBox.top) {
-            canvas.top = cropBox.top;
-          } else if (canvas.top + canvas.height < cropBox.top + cropBox.height) {
-            canvas.top = cropBox.top + cropBox.height - canvas.height;
-          }
-        }
-
         this.renderCanvas(true);
       }
     },
@@ -1100,51 +1099,18 @@
           width = height * canvas.aspectRatio;
         }
 
+        if (!this.options.strict && this.options.strictCropBox && height < cropBox.height) {
+          height = cropBox.height;
+          width = height * canvas.aspectRatio;
+        }
+
+        if (!this.options.strict && this.options.strictCropBox && width < cropBox.width) {
+          width = cropBox.width;
+          height = width / canvas.aspectRatio;
+        }
+
         left = canvas.left - (width - canvas.width) / 2;
         top = canvas.top - (height - canvas.height) / 2;
-
-        // correction
-        if (!this.options.strict && this.options.strictCropBox) {
-          var canvasAspectRatio = canvas.width / canvas.height;
-
-          // if canvas is less wide than crop box make canvas the same width crop box have
-          if (width < cropBox.width) {
-            width = cropBox.width;
-            // and correct height with original aspect ratio of canvas
-            height = width / canvasAspectRatio;
-            // and lock canvas
-            top = canvas.top - (height - canvas.height) / 2;
-          }
-
-          // if even now canvas is less high than crop box make canvas the same height crop box have
-          if (height < cropBox.height) {
-            height = cropBox.height;
-            // and correct height with original aspect ratio of canvas
-            width = height * canvasAspectRatio;
-            // and lock canvas
-            left = canvas.left - (width - canvas.width) / 2;
-          }
-
-          // check left side
-          if (left > cropBox.left) {
-            left = cropBox.left;
-          }
-
-          // check right side
-          if (left + width < cropBox.left + cropBox.width) {
-            left = cropBox.left + cropBox.width - width;
-          }
-
-          // check top
-          if (top > cropBox.top) {
-            top = cropBox.top;
-          }
-
-          // check bottom
-          if (top + height < cropBox.top + cropBox.height) {
-            top = cropBox.top + cropBox.height - height;
-          }
-        }
 
         canvas.left = left;
         canvas.top = top;
@@ -2173,7 +2139,7 @@
 
     // Toggles
     strict: true, // strict mode, the image cannot zoom out less than the container
-    strictCropBox: true, // crop box strict mode, the crop box cannot move and resize outside the canvas and the canvas cannot zoom out less than crop box
+    strictCropBox: false, // crop box strict mode, the crop box cannot move and resize outside the canvas and the canvas cannot zoom out less than crop box
     responsive: true, // Rebuild when resize the window
     checkImageOrigin: true, // Check if the target image is cross origin
 
