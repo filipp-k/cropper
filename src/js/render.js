@@ -114,6 +114,7 @@
           container = this.container,
           canvas = this.canvas,
           image = this.image,
+          cropBox = this.cropBox,
           aspectRatio,
           reversed,
           rotated;
@@ -154,6 +155,21 @@
       if (options.strict) {
         canvas.minLeft = container.width - canvas.width;
         canvas.minTop = container.height - canvas.height;
+      } else if (this.options.strictCropBox && cropBox) {
+        if (canvas.width < cropBox.width) {
+          canvas.width = cropBox.width;
+          canvas.height = canvas.width / canvas.aspectRatio;
+        }
+
+        if (canvas.height < cropBox.height) {
+          canvas.height = cropBox.height;
+          canvas.width = canvas.height * canvas.aspectRatio;
+        }
+
+        canvas.maxLeft = cropBox.left;
+        canvas.minLeft = cropBox.left + cropBox.width - canvas.width;
+        canvas.maxTop = cropBox.top;
+        canvas.minTop = cropBox.top + cropBox.height - canvas.height;
       } else {
         canvas.minLeft = -canvas.width;
         canvas.minTop = -canvas.height;
