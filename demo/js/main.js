@@ -31,6 +31,8 @@ $(function () {
         $dataRotate = $('#dataRotate'),
         options = {
           aspectRatio: 16 / 9,
+          maxCanvasWidth: 3000,
+          maxCanvasHeight: 3000,
           preview: '.img-preview',
           crop: function (data) {
             $dataX.val(Math.round(data.x));
