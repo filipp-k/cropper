@@ -17,7 +17,7 @@
 
     // Toggles
     strict: true, // strict mode, the image cannot zoom out less than the container
-    strictCropBox: true, // crop box strict mode, the crop box cannot move and resize outside the canvas and the canvas cannot zoom out less than crop box
+    strictCropBox: false, // crop box strict mode, the crop box cannot move and resize outside the canvas and the canvas cannot zoom out less than crop box
     responsive: true, // Rebuild when resize the window
     checkImageOrigin: true, // Check if the target image is cross origin
 
