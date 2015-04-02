@@ -93,6 +93,8 @@
     zoom: function (delta) {
       var canvas = this.canvas,
           cropBox = this.cropBox,
+          maxCanvasWidth = this.options.maxCanvasWidth,
+          maxCanvasHeight = this.options.maxCanvasHeight,
           zoomEvent,
           left,
           top,
@@ -112,7 +114,18 @@
         delta = delta <= -1 ? 1 / (1 - delta) : delta <= 1 ? (1 + delta) : delta;
 
         width = canvas.width * delta;
-        height = canvas.height * delta;
+        if (maxCanvasWidth && width > maxCanvasWidth) {
+          width = maxCanvasWidth;
+          height = width / canvas.aspectRatio;
+        } else {
+          height = canvas.height * delta;
+        }
+
+        if (maxCanvasHeight && height > maxCanvasHeight) {
+          height = maxCanvasHeight;
+          width = height * canvas.aspectRatio;
+        }
+
         left = canvas.left - (width - canvas.width) / 2;
         top = canvas.top - (height - canvas.height) / 2;
 
